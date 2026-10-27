@@ -2,7 +2,6 @@ name: Reklamalarni guruhlarga yuborish
 
 on:
   schedule:
-    schedule:
     - cron: '*/20 * * * *'
   workflow_dispatch: {}
 
