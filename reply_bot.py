@@ -12,7 +12,6 @@ AUTO_REPLY = (
     "YOKI +998958565307 GA SMS YOZING\n\n"
     "MAQSAD: O'RGANISH VA PUL ISHLASH"
 )
-)
 
 
 def load_state():
