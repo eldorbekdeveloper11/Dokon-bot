@@ -1,12 +1,14 @@
 import asyncio
 import json
 import os
+import time
 from telegram import Bot
 from telegram.error import TelegramError
 
 TOKEN = os.environ["BOT_TOKEN"]
 GROUPS_FILE = "groups.json"
 ADS_FILE = "ads.json"
+MIN_GAP = 19 * 60  # oxirgi yuborishdan kamida 19 daqiqa o'tishi kerak
 
 
 def load_groups():
@@ -50,6 +52,8 @@ async def send_ad(bot, chat_id, ad):
             await bot.send_photo(chat_id=chat_id, photo=f, caption=text or None)
     elif text:
         await bot.send_message(chat_id=chat_id, text=text)
+    else:
+        print("Reklamada matn ham, topilgan rasm ham yo'q:", ad)
 
 
 async def main():
@@ -57,6 +61,12 @@ async def main():
     ads_data = load_ads()
     ads = ads_data.get("ads", [])
     if not ads or not groups:
+        return
+
+    # Ikki yuborish orasi 20 daqiqadan kam bo'lmasligi uchun himoya
+    last_sent = ads_data.get("last_sent", 0)
+    if time.time() - last_sent < MIN_GAP:
+        print("Hali erta, o'tkazib yuborildi")
         return
 
     idx = ads_data.get("index", 0) % len(ads)
@@ -67,7 +77,8 @@ async def main():
     for chat_id in list(groups):
         try:
             await send_ad(bot, chat_id, ad)
-        except TelegramError:
+        except TelegramError as e:
+            print("Xato:", chat_id, e)
             dead.append(chat_id)
 
     for d in dead:
@@ -75,6 +86,7 @@ async def main():
     save_groups(groups)
 
     ads_data["index"] = (idx + 1) % len(ads)
+    ads_data["last_sent"] = int(time.time())
     save_ads(ads_data)
 
 
