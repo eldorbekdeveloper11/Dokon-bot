@@ -8,9 +8,10 @@ SITE_URL = "https://eldorbekdeveloper11.github.io/mini-dokon/"
 STATE_FILE = "groups.json"
 
 AUTO_REPLY = (
-    "Assalomu alaykum! 🛍️ Oziq-ovqat do'konimiz bilan bog'langaningiz uchun rahmat.\n\n"
-    "Narxlar bilan tanishish: " + SITE_URL + "\n\n"
-    "Reklama joylashtirish yoki savollaringiz bo'lsa, shu yerga yozing — tez orada javob beramiz."
+    "REKLAMA YUKLAMOQCHI BO'LSANGIZ @ELDORBEK_231 GA MUROJAT QILING\n"
+    "YOKI +998958565307 GA SMS YOZING\n\n"
+    "MAQSAD: O'RGANISH VA PUL ISHLASH"
+)
 )
 
 
