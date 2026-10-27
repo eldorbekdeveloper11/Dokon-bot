@@ -1,4 +1,8 @@
 {
-  "ads": [],
+  "ads": [
+    {
+      "photo": "reklama1.jpg"
+    }
+  ],
   "index": 0
 }
