@@ -30,7 +30,7 @@ GROUPS_FILE = "groups.json"
 PUBLIC_CHANNEL = "@meningsevimlimusiqam"
 PUBLIC_URL = "https://t.me/meningsevimlimusiqam"
 PRIVATE_CHANNEL_ID = -1004369700217  # zayafka kanal (qo'shilish so'rovi bilan)
-PRIVATE_URL = "https://t.me/+iCLLHQVsIKIxNjI6"
+PRIVATE_URL = "https://t.me/+lQUkG25rdqY4MjY6"
 
 AUTO_REPLY = (
     "👋 Assalomu alaykum!\n\n"
