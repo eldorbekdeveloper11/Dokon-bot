@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import logging
@@ -19,12 +20,14 @@ from telegram.ext import (
 )
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)  # loglarda bot tokeni ko'rinmasligi uchun
 log = logging.getLogger("bot")
 
 TOKEN = os.environ["BOT_TOKEN"]
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = os.environ.get("GITHUB_REPO", "eldorbekdeveloper11/Dokon-bot")
 GROUPS_FILE = "groups.json"
+REQUESTS_FILE = "requests.json"
 
 # Majburiy obuna kanallari
 PUBLIC_CHANNEL = "@meningsevimlimusiqam"
@@ -46,6 +49,8 @@ SUBSCRIBE_TEXT = (
 )
 
 groups = set()
+join_requests = set()  # yopiq kanalga so'rov yuborgan foydalanuvchilar
+gh_lock = asyncio.Lock()
 
 
 # ---------- Majburiy obuna ----------
@@ -64,8 +69,12 @@ async def is_member(bot, chat_id, user_id):
 
 async def is_subscribed(bot, user_id):
     a = await is_member(bot, PUBLIC_CHANNEL, user_id)
-    b = await is_member(bot, PRIVATE_CHANNEL_ID, user_id)
-    return a and b
+    if not a:
+        return False
+    # Yopiq kanal: so'rov yuborgan yoki (tasdiqlangan bo'lsa) a'zo bo'lgan
+    if user_id in join_requests:
+        return True
+    return await is_member(bot, PRIVATE_CHANNEL_ID, user_id)
 
 
 def subscribe_keyboard():
@@ -79,12 +88,15 @@ def subscribe_keyboard():
 
 
 async def on_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # So'rov tasdiqlanmaydi: faqat kim so'rov yuborganini eslab qolamiz
     req = update.chat_join_request
     if req and req.chat.id == PRIVATE_CHANNEL_ID:
-        try:
-            await req.approve()
-        except TelegramError as e:
-            log.warning("So'rov tasdiqlanmadi: %s", e)
+        uid = req.from_user.id
+        if uid not in join_requests:
+            join_requests.add(uid)
+            await gh_update(
+                REQUESTS_FILE, "users", join_requests, "So'rovlar yangilandi", {"users": []}
+            )
 
 
 async def on_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -107,109 +119,21 @@ def gh_headers():
     }
 
 
-async def load_groups():
-    url = f"https://api.github.com/repos/{REPO}/contents/{GROUPS_FILE}"
+def api_url(path):
+    return f"https://api.github.com/repos/{REPO}/contents/{path}"
+
+
+async def gh_read(path):
     try:
         async with httpx.AsyncClient(timeout=20) as c:
-            r = await c.get(url, headers=gh_headers() if GH_TOKEN else {})
+            r = await c.get(api_url(path), headers=gh_headers() if GH_TOKEN else {})
             if r.status_code == 200:
-                data = json.loads(base64.b64decode(r.json()["content"]))
-                return set(data.get("groups", []))
+                return json.loads(base64.b64decode(r.json()["content"]))
     except Exception as e:
-        log.warning("groups.json o'qilmadi: %s", e)
-    return set()
+        log.warning("%s o'qilmadi: %s", path, e)
+    return None
 
 
-async def save_groups():
+async def gh_update(path, key, values, message, default):
     if not GH_TOKEN:
-        log.warning("GITHUB_TOKEN yo'q, ro'yxat saqlanmadi")
-        return
-    url = f"https://api.github.com/repos/{REPO}/contents/{GROUPS_FILE}"
-    try:
-        async with httpx.AsyncClient(timeout=20) as c:
-            r = await c.get(url, headers=gh_headers())
-            sha = None
-            data = {"groups": [], "offset": 0}
-            if r.status_code == 200:
-                sha = r.json()["sha"]
-                data = json.loads(base64.b64decode(r.json()["content"]))
-            data["groups"] = sorted(groups)
-            body = {
-                "message": "Guruhlar yangilandi",
-                "content": base64.b64encode(
-                    json.dumps(data, ensure_ascii=False, indent=2).encode()
-                ).decode(),
-            }
-            if sha:
-                body["sha"] = sha
-            pr = await c.put(url, headers=gh_headers(), json=body)
-            log.info("groups.json saqlandi: %s", pr.status_code)
-    except Exception as e:
-        log.warning("groups.json saqlanmadi: %s", e)
-
-
-async def remember_group(chat_id):
-    if chat_id not in groups:
-        groups.add(chat_id)
-        await save_groups()
-
-
-# ---------- Xabarlar ----------
-async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    msg = update.effective_message
-    if not chat or not msg:
-        return
-    if chat.type == "private":
-        user = update.effective_user
-        if user and await is_subscribed(context.bot, user.id):
-            await msg.reply_text(AUTO_REPLY)
-        else:
-            await msg.reply_text(SUBSCRIBE_TEXT, reply_markup=subscribe_keyboard())
-    elif chat.type in ("group", "supergroup"):
-        await remember_group(chat.id)
-
-
-async def on_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    if chat and chat.type in ("group", "supergroup"):
-        await remember_group(chat.id)
-
-
-async def post_init(app: Application):
-    groups.update(await load_groups())
-    log.info("Yuklangan guruhlar: %d ta", len(groups))
-
-
-# ---------- Render uchun kichik veb-server ----------
-class Health(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"ok")
-
-    def do_HEAD(self):
-        self.send_response(200)
-        self.end_headers()
-
-    def log_message(self, *args):
-        pass
-
-
-def run_health():
-    port = int(os.environ.get("PORT", "10000"))
-    HTTPServer(("0.0.0.0", port), Health).serve_forever()
-
-
-def main():
-    threading.Thread(target=run_health, daemon=True).start()
-    app = Application.builder().token(TOKEN).post_init(post_init).build()
-    app.add_handler(ChatJoinRequestHandler(on_join_request))
-    app.add_handler(CallbackQueryHandler(on_check, pattern="^check$"))
-    app.add_handler(ChatMemberHandler(on_member, ChatMemberHandler.MY_CHAT_MEMBER))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.StatusUpdate.ALL, on_message))
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
-
-
-if __name__ == "__main__":
-    main()
+        l
