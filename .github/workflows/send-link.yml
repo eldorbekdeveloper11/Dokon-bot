@@ -2,11 +2,11 @@ name: Reklamalarni guruhlarga yuborish
 
 on:
   schedule:
-    - cron: '*/20 * * * *'
+        - cron: '0 3-17/2 * * *'
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents:
 
 concurrency:
   group: bot-state
