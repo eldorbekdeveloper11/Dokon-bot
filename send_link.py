@@ -8,7 +8,7 @@ from telegram.error import TelegramError
 TOKEN = os.environ["BOT_TOKEN"]
 GROUPS_FILE = "groups.json"
 ADS_FILE = "ads.json"
-MIN_GAP = 19 * 60  # oxirgi yuborishdan kamida 19 daqiqa o'tishi kerak
+MIN_GAP = 90 * 60  # oxirgi yuborishdan kamida 19 daqiqa o'tishi kerak
 BUTTON_TEXT = "📢 Reklama berish"
 
 
