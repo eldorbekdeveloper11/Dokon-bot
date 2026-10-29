@@ -38,8 +38,8 @@ PRIVATE_URL = "https://t.me/+7ha5JpZjMXY5NmU6"
 AUTO_REPLY = (
     "👋 Assalomu alaykum!\n\n"
     "📢 Siz bergan reklamalarni Telegram guruhlarda kuniga kamida 2 marta yuboramiz.\n\n"
-    "REKLAMA YUKLAMOQCHI BO'LSANGIZ @ELDORBEK_231 GA MUROJAT QILING\n"
-    "YOKI +998958565307 GA SMS YOZING\n\n"
+    "REKLAMA YUKLAMOQCHI BO'LSANGIZ @ELDOR_231 GA MUROJAT QILING\n"
+    "YOKI +998958565307 GA SMS YOZING ! QOʻNGʻIROQ QILMANG DARSDA BOʻLISHI MUMKIN\n\n"
     "MAQSAD: O'RGANISH VA PUL ISHLASH"
 )
 
