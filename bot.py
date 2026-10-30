@@ -2,6 +2,7 @@ import asyncio, base64, json, logging, os, threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import httpx
 import admin
+import zayafka
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup as Kb, Update
 from telegram.error import TelegramError
 from telegram.ext import (Application, CallbackQueryHandler, ChatJoinRequestHandler,
@@ -23,6 +24,7 @@ AUTO_REPLY = (
     "📢 Siz bergan reklamalarni Telegram guruhlarda kuniga kamida 2 marta yuboramiz.\n\n"
     "REKLAMA YUKLAMOQCHI BO'LSANGIZ @ELDOR_231 GA MUROJAT QILING\n"
     "YOKI +998958565307 GA SMS YOZING\n\n"
+    "📩 Yoki reklamangizni (rasm + matn) shu botga yuboring, ko'rib chiqamiz.\n\n"
     "MAQSAD: O'RGANISH VA PUL ISHLASH"
 )
 ASK = "❗️ Botdan foydalanish uchun kanallarga a'zo bo'ling, so'ng «✅ Tekshirish» ni bosing."
@@ -150,6 +152,7 @@ def main():
     threading.Thread(target=HTTPServer(("0.0.0.0", port), Health).serve_forever, daemon=True).start()
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     admin.register(app)
+    zayafka.register(app, subscribed, on_msg)
     app.add_handler(ChatJoinRequestHandler(on_join))
     app.add_handler(CallbackQueryHandler(on_check, pattern="^check$"))
     app.add_handler(ChatMemberHandler(on_member, ChatMemberHandler.MY_CHAT_MEMBER))
