@@ -44,9 +44,14 @@ async def submit(ctx, msg, user, photos, text):
         else:
             await ctx.bot.send_media_group(admin.ADMIN_ID, [
                 InputMediaPhoto(p, caption=cap if i == 0 else None) for i, p in enumerate(photos)])
+        link = f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
+        tg = f"@{user.username}" if user.username else "username yo'q (tugma orqali oching)"
         kb = Kb([[Btn("✅ Qabul", callback_data=f"zy:ok:{app_id}"),
-                  Btn("❌ Rad", callback_data=f"zy:no:{app_id}")]])
-        await ctx.bot.send_message(admin.ADMIN_ID, f"📥 Yangi zayafka №{app_id}\n👤 {who}\n🆔 {user.id}", reply_markup=kb)
+                  Btn("❌ Rad", callback_data=f"zy:no:{app_id}")],
+                 [Btn("👤 Telegrami", url=link)]])
+        await ctx.bot.send_message(
+            admin.ADMIN_ID, f"📥 Yangi zayafka №{app_id}\n👤 {user.full_name}\n📱 Telegram: {tg}\n🆔 {user.id}",
+            reply_markup=kb)
         await msg.reply_text("✅ Zayafkangiz qabul qilindi. Ko'rib chiqib, javob beramiz.")
     except Exception as e:
         await msg.reply_text("❌ Xatolik yuz berdi, birozdan keyin qayta urinib ko'ring.")
