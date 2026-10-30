@@ -20,27 +20,32 @@ def save(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def src(p):
+    # repodagi fayl bo'lsa o'qiydi, aks holda Telegram file_id deb oladi
+    if os.path.exists(p):
+        with open(p, "rb") as f:
+            return f.read()
+    return p
+
+
 async def send_ad(bot, chat_id, ad, markup):
-    # ad: oddiy matn yoki {"text": "...", "photo": "a.jpg"} yoki {"photos": ["a.jpg", "b.jpg"]}
+    # ad: matn yoki {"text": "...", "photos": ["fayl.jpg yoki file_id", ...]}
     if isinstance(ad, str):
         ad = {"text": ad}
     text = ad.get("text")
-    photos = ad.get("photos") or ([ad["photo"]] if ad.get("photo") else [])
-    photos = [p for p in photos if os.path.exists(p)][:10]
+    photos = (ad.get("photos") or ([ad["photo"]] if ad.get("photo") else []))[:10]
     if len(photos) >= 2:
-        media = []
-        for i, p in enumerate(photos):
-            with open(p, "rb") as f:
-                media.append(InputMediaPhoto(f.read(), caption=text if i == 0 else None))
+        media = [InputMediaPhoto(src(p), caption=text if i == 0 else None)
+                 for i, p in enumerate(photos)]
         await bot.send_media_group(chat_id=chat_id, media=media)
         await bot.send_message(chat_id=chat_id, text=BUTTON_MSG, reply_markup=markup)
     elif photos:
-        with open(photos[0], "rb") as f:
-            await bot.send_photo(chat_id=chat_id, photo=f, caption=text, reply_markup=markup)
+        await bot.send_photo(chat_id=chat_id, photo=src(photos[0]), caption=text,
+                             reply_markup=markup)
     elif text:
         await bot.send_message(chat_id=chat_id, text=text, reply_markup=markup)
     else:
-        print("Reklamada matn ham, rasm ham topilmadi:", ad)
+        print("Bo'sh reklama:", ad)
 
 
 async def main():
