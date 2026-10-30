@@ -44,14 +44,14 @@ async def submit(ctx, msg, user, photos, text):
         else:
             await ctx.bot.send_media_group(admin.ADMIN_ID, [
                 InputMediaPhoto(p, caption=cap if i == 0 else None) for i, p in enumerate(photos)])
-        link = f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
-        tg = f"@{user.username}" if user.username else "username yo'q (tugma orqali oching)"
-        kb = Kb([[Btn("✅ Qabul", callback_data=f"zy:ok:{app_id}"),
-                  Btn("❌ Rad", callback_data=f"zy:no:{app_id}")],
-                 [Btn("👤 Telegrami", url=link)]])
+        rows = [[Btn("✅ Qabul", callback_data=f"zy:ok:{app_id}"),
+                 Btn("❌ Rad", callback_data=f"zy:no:{app_id}")]]
+        if user.username:
+            rows.append([Btn("👤 Telegrami", url=f"https://t.me/{user.username}")])
+        tg = f"@{user.username}" if user.username else "username yo'q"
         await ctx.bot.send_message(
             admin.ADMIN_ID, f"📥 Yangi zayafka №{app_id}\n👤 {user.full_name}\n📱 Telegram: {tg}\n🆔 {user.id}",
-            reply_markup=kb)
+            reply_markup=Kb(rows))
         await msg.reply_text("✅ Zayafkangiz qabul qilindi. Ko'rib chiqib, javob beramiz.")
     except Exception as e:
         await msg.reply_text("❌ Xatolik yuz berdi, birozdan keyin qayta urinib ko'ring.")
@@ -65,31 +65,6 @@ async def finish(gid, ctx, msg, user):
         await submit(ctx, msg, user, a["photos"], a["text"])
 
 
-async def on_photo(u, ctx):
-    m, user = u.message, u.effective_user
-    if not await SUB(ctx.bot, user.id):
-        return await FALLBACK(u, ctx)
-    fid, gid = m.photo[-1].file_id, m.media_group_id
-    if not gid:
-        return await submit(ctx, m, user, [fid], m.caption)
-    if gid not in albums:
-        albums[gid] = {"photos": [], "text": None}
-        t = asyncio.create_task(finish(gid, ctx, m, user))
-        tasks.add(t)
-        t.add_done_callback(tasks.discard)
-    albums[gid]["photos"].append(fid)
-    if m.caption:
-        albums[gid]["text"] = m.caption
-
-
-async def on_decide(u, ctx):
-    q = u.callback_query
-    if q.from_user.id != admin.ADMIN_ID:
-        return await q.answer("Ruxsat yo'q", show_alert=True)
-    _, act, app_id = q.data.split(":")
-    box = {}
-    await pchange(lambda d: box.update(a=d.pop(app_id, None)))
-    a = box["a"]
     if not a:
         return await q.answer("Bu zayafka allaqachon ko'rib chiqilgan.", show_alert=True)
     if act == "ok":
